@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Indigenous Peoples Interactive Map</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        :root {
+            --earth-brown: #5e3a1e;
+            --clay-red: #9c4a1a;
+            --sun-yellow: #e8a317;
+            --sky-blue: #4a8fe7;
+            --forest-green: #2a5a3a;
+            --bg-color: #f5e8d0;
+            --text-color: #333;
+            --sidebar-bg: rgba(245, 232, 208, 0.9);
+            --border-color: #2a5a3a;
+            --header-gradient: linear-gradient(to right, #9c4a1a, #5e3a1e);
+        }
+
+        .dark-mode {
+            --earth-brown: #3a2a1e;
+            --clay-red: #7c3a1a;
+            --sun-yellow: #d89317;
+            --sky-blue: #3a7fd7;
+            --forest-green: #1a4a2a;
+            --bg-color: #1a1a1a;
+            --text-color: #f0f0f0;
+            --sidebar-bg: rgba(30, 30, 30, 0.9);
+            --border-color: #1a4a2a;
+            --header-gradient: linear-gradient(to right, #7c3a1a, #3a2a1e);
+        }
+        
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            background-image: url('https://www.transparenttextures.com/patterns/rice-paper-3.png');
+            transition: background-color 0.3s, color 0.3s;
+        }
+        
+        .header {
+            background: var(--header-gradient);
+            color: #f5e8d0;
+            padding: 1rem;
+            text-align: center;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            border-bottom: 4px solid var(--sun-yellow);
+            position: relative;
+        }
+        
+        .header h1 {
+            margin: 0;
+            font-size: 2.5rem;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        
+        .header p {
+            margin: 0.5rem 0 0;
+            font-style: italic;
+        }
+        
+        .container {
+            display: flex;
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+        
+        #map {
+            height: 600px;
+            width: 70%;
+            border: 8px solid var(--earth-brown);
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            transition: border-color 0.3s;
+        }
+        
+        .sidebar {
+            width: 30%;
+            padding: 0 1rem;
+            overflow-y: auto;
+            max-height: 600px;
+        }
+        
+        .group-info {
+            background-color: var(--sidebar-bg);
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+            transition: background-color 0.3s, border-color 0.3s;
+        }
+        
+        .group-info h3 {
+            color: var(--clay-red);
+            margin-top: 0;
+            border-bottom: 2px solid var(--sun-yellow);
+            padding-bottom: 0.5rem;
+        }
+        
+        .challenges {
+            background-color: rgba(156, 74, 26, 0.1);
+            padding: 0.5rem;
+            border-radius: 4px;
+            margin-top: 0.5rem;
+        }
+        
+        .challenges h4 {
+            margin-bottom: 0.5rem;
+            color: var(--forest-green);
+        }
+        
+        .challenges ul {
+            margin-top: 0;
+            padding-left: 1.2rem;
+        }
+        
+        .footer {
+            background: var(--header-gradient);
+            color: #f5e8d0;
+            text-align: center;
+            padding: 1rem;
+            margin-top: 2rem;
+            font-size: 0.9rem;
+        }
+        
+        .legend {
+            background: var(--sidebar-bg);
+            padding: 0.5rem;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            transition: background-color 0.3s, border-color 0.3s;
+        }
+        
+        .legend i {
+            width: 18px;
+            height: 18px;
+            float: left;
+            margin-right: 8px;
+            border-radius: 50%;
+            border: 1px solid white;
+        }
+        
+        .tribal-pattern {
+            position: absolute;
+            width: 100%;
+            height: 20px;
+            background-image: url('https://www.transparenttextures.com/patterns/tribal.png');
+            opacity: 0.2;
+        }
+
+        .dark-mode-toggle {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+        }
+
+        .dark-mode-toggle:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .custom-tooltip {
+            position: absolute;
+            background-color: white;
+            border: 2px solid var(--forest-green);
+            border-radius: 5px;
+            padding: 5px;
+            z-index: 1000;
+            pointer-events: none;
+            max-width: 200px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+        .custom-tooltip img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 3px;
+        }
+
+        .custom-tooltip p {
+            margin: 5px 0 0;
+            font-size: 12px;
+            text-align: center;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+            }
+            
+            #map, .sidebar {
+                width: 100%;
+            }
+            
+            .sidebar {
+                margin-top: 1rem;
+                max-height: 300px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="tribal-pattern"></div>
+    <div class="header">
+        <h1><i class="fas fa-globe-americas"></i> Indigenous Peoples Interactive Map</h1>
+        <p>Exploring the cultures and challenges of indigenous communities worldwide</p>
+        <button class="dark-mode-toggle" id="darkModeToggle">
+            <i class="fas fa-moon"></i>
+        </button>
+    </div>
+    
+    <div class="container">
+        <div id="map"></div>
+        <div class="sidebar">
+            <div class="group-info" id="group-details">
+                <h3>Select a location on the map</h3>
+                <p>Click on any marker to learn about the indigenous group living in that area and the challenges they face.</p>
+                <p>Hover over markers to see images of each community.</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="footer">
+        <p>Created to raise awareness about indigenous cultures and their struggles | Data sources: Indigenous Peoples Organizations, Cultural Surveys</p>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script>
+        // Initialize the map
+        const map = L.map('map').setView([12.8797, 121.7740], 5); // Centered on Philippines
+        
+        // Add tile layer (using a terrain base map)
+        const lightMap = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+            maxZoom: 17,
+            attribution: 'Map data: &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, <a href="http://viewfinderpanoramas.org">SRTM</a> | Map style: &copy; <a href="https://opentopomap.org">OpenTopoMap</a> (<a href="https://creativecommons.org/licenses/by-sa/3.0/">CC-BY-SA</a>)'
+        }).addTo(map);
+
+        // Dark mode map layer
+        const darkMap = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+        });
+
+        // Create custom tooltip for hover images
+        const tooltip = document.createElement('div');
+        tooltip.className = 'custom-tooltip';
+        tooltip.style.display = 'none';
+        document.body.appendChild(tooltip);
+        
+        // Indigenous groups data with images
+        const indigenousGroups = [
+            {
+                name: "Lumad",
+                location: [8.1833, 125.1667],
+                country: "Philippines",
+                population: "2.1 million",
+                description: "Collective term for various indigenous groups in Mindanao, known for their rich cultural traditions and connection to ancestral lands.",
+                challenges: [
+                    "Land grabbing and displacement due to mining and agribusiness",
+                    "Militarization in ancestral domains",
+                    "Loss of cultural identity among youth",
+                    "Limited access to education and healthcare"
+                ],
+                color: "#e31a1c",
+                image: "lumad.jpg",
+                imageCaption: "Lumad people in traditional costume"
+            },
+            {
+                name: "Igorot",
+                location: [16.8333, 120.9167],
+                country: "Philippines",
+                population: "1.5 million",
+                description: "Indigenous peoples of the Cordillera region, famous for their rice terraces and traditional weaving.",
+                challenges: [
+                    "Commercialization of sacred sites",
+                    "Large-scale mining operations",
+                    "Climate change affecting traditional agriculture",
+                    "Cultural appropriation"
+                ],
+                color: "#fd8d3c",
+                image: "igorot.jpg",
+                imageCaption: "Igorot women in traditional attire"
+            },
+            {
+                name: "Aeta",
+                location: [15.3000, 120.2000],
+                country: "Philippines",
+                population: "50,000-100,000",
+                description: "Negrito groups who are among the earliest inhabitants of the Philippines, with hunter-gatherer traditions.",
+                challenges: [
+                    "Displacement due to volcanic eruptions and development projects",
+                    "Discrimination and marginalization",
+                    "Loss of traditional hunting grounds",
+                    "Poor access to social services"
+                ],
+                color: "#fecc5c",
+                image: "aeta.jpg",
+                imageCaption: "Aeta woman showing traditional skills"
+            },
+            {
+                name: "Māori",
+                location: [-40.9006, 174.8860],
+                country: "New Zealand",
+                population: "775,000",
+                description: "Indigenous Polynesian people of New Zealand with a rich warrior culture and distinctive tattoos (ta moko).",
+                challenges: [
+                    "Land rights disputes",
+                    "Preservation of language (te reo Māori)",
+                    "Socioeconomic disparities",
+                    "Cultural commodification"
+                ],
+                color: "#238443",
+                image: "maori.jpg",
+                imageCaption: "Māori warrior in traditional dress"
+            },
+            {
+                name: "Sami",
+                location: [68.5, 23.0],
+                country: "Norway, Sweden, Finland, Russia",
+                population: "80,000",
+                description: "Indigenous people of northern Scandinavia known for reindeer herding and joik singing.",
+                challenges: [
+                    "Climate change affecting reindeer migration",
+                    "Land rights conflicts with governments",
+                    "Industrial development in traditional lands",
+                    "Cultural assimilation pressures"
+                ],
+                color: "#2b8cbe",
+                image: "sami.jpg",
+                imageCaption: "Sami family with reindeer (1900)"
+            },
+            {
+                name: "Yanomami",
+                location: [2.8, -64.0],
+                country: "Brazil/Venezuela",
+                population: "35,000",
+                description: "Indigenous group living in the Amazon rainforest with minimal contact with the outside world.",
+                challenges: [
+                    "Illegal gold mining causing mercury poisoning",
+                    "Deforestation of ancestral lands",
+                    "Violence from intruders",
+                    "Diseases from outsiders"
+                ],
+                color: "#756bb1",
+                image: "yanonami.jpg",
+                imageCaption: "Yanomami people in their village"
+            }
+        ];
+        
+        // Add markers for each indigenous group
+        indigenousGroups.forEach(group => {
+            const marker = L.circleMarker(group.location, {
+                radius: 8,
+                fillColor: group.color,
+                color: "#fff",
+                weight: 1,
+                opacity: 1,
+                fillOpacity: 0.8
+            }).addTo(map);
+            
+            // Bind popup to marker
+            marker.bindPopup(`
+                <h3>${group.name} People</h3>
+                <p><strong>Country:</strong> ${group.country}</p>
+                <p><strong>Population:</strong> ${group.population}</p>
+                <img src="${group.image}" style="max-width:100%; border-radius:5px; margin:5px 0;">
+                <p>${group.description}</p>
+            `);
+            
+            // Add hover events for image tooltip
+            marker.on('mouseover', function(e) {
+                tooltip.innerHTML = `
+                    <img src="${group.image}" alt="${group.name}">
+                    <p>${group.imageCaption}</p>
+                `;
+                tooltip.style.display = 'block';
+                
+                // Position tooltip near cursor
+                const mapContainer = map.getContainer();
+                const mapRect = mapContainer.getBoundingClientRect();
+                const x = e.originalEvent.clientX - mapRect.left + 15;
+                const y = e.originalEvent.clientY - mapRect.top + 15;
+                
+                tooltip.style.left = `${x}px`;
+                tooltip.style.top = `${y}px`;
+            });
+            
+            marker.on('mouseout', function() {
+                tooltip.style.display = 'none';
+            });
+            
+            marker.on('mousemove', function(e) {
+                const mapContainer = map.getContainer();
+                const mapRect = mapContainer.getBoundingClientRect();
+                const x = e.originalEvent.clientX - mapRect.left + 15;
+                const y = e.originalEvent.clientY - mapRect.top + 15;
+                
+                tooltip.style.left = `${x}px`;
+                tooltip.style.top = `${y}px`;
+            });
+            
+            // Add click event to update sidebar
+            marker.on('click', function() {
+                updateGroupInfo(group);
+            });
+        });
+        
+        // Function to update the sidebar with group information
+        function updateGroupInfo(group) {
+            const groupDetails = document.getElementById('group-details');
+            
+            let challengesHTML = '';
+            if (group.challenges && group.challenges.length > 0) {
+                challengesHTML = `
+                    <div class="challenges">
+                        <h4>Current Challenges:</h4>
+                        <ul>
+                            ${group.challenges.map(challenge => `<li>${challenge}</li>`).join('')}
+                        </ul>
+                    </div>
+                `;
+            }
+            
+            groupDetails.innerHTML = `
+                <h3>${group.name} People</h3>
+                <p><strong>Country:</strong> ${group.country}</p>
+                <p><strong>Population:</strong> ${group.population}</p>
+                <img src="${group.image}" style="max-width:100%; border-radius:5px; margin:5px 0;">
+                <p>${group.description}</p>
+                ${challengesHTML}
+            `;
+            
+            // Center map on the selected group
+            map.setView(group.location, 6);
+        }
+        
+        // Add legend
+        const legend = L.control({position: 'bottomright'});
+        
+        legend.onAdd = function(map) {
+            const div = L.DomUtil.create('div', 'legend');
+            div.innerHTML = `
+                <h4>Indigenous Groups</h4>
+                <i style="background: #e31a1c"></i> Lumad (Philippines)<br>
+                <i style="background: #fd8d3c"></i> Igorot (Philippines)<br>
+                <i style="background: #fecc5c"></i> Aeta (Philippines)<br>
+                <i style="background: #238443"></i> Māori (New Zealand)<br>
+                <i style="background: #2b8cbe"></i> Sami (Scandinavia)<br>
+                <i style="background: #756bb1"></i> Yanomami (Amazon)
+            `;
+            return div;
+        };
+        
+        legend.addTo(map);
+
+        // Dark mode toggle functionality
+        const darkModeToggle = document.getElementById('darkModeToggle');
+        let darkMode = false;
+
+        darkModeToggle.addEventListener('click', function() {
+            darkMode = !darkMode;
+            
+            if (darkMode) {
+                document.body.classList.add('dark-mode');
+                darkModeToggle.innerHTML = '<i class="fas fa-sun"></i>';
+               
+            } else {
+                document.body.classList.remove('dark-mode');
+                darkModeToggle.innerHTML = '<i class="fas fa-moon"></i>';
+               
+            }
+        });
+    </script>
+</body>
+</html>
